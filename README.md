@@ -136,10 +136,6 @@ Before installing aClicker, make sure you have:
 
 ### Step 1 — Download the Code
 
-Choose **one** of the two methods below:
-
-#### Method A: Download ZIP (Recommended for Beginners — No Extra Software Needed)
-
 1. On this GitHub page, click the green **`<> Code`** button near the top.
 2. Select **`Download ZIP`** from the dropdown menu.
 3. Find the downloaded `.zip` file (usually in your `Downloads` folder) and **extract / unzip** it.
