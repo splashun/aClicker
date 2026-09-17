@@ -51,7 +51,9 @@ function isAllowedImageUrl(url) {
     if (parsed.protocol !== "https:") return false;
     return (
       parsed.hostname === "student.iclicker.com" ||
-      parsed.hostname.endsWith(".amazonaws.com")
+      parsed.hostname.endsWith(".iclicker.com") ||
+      parsed.hostname.endsWith(".amazonaws.com") ||
+      parsed.hostname.endsWith(".cloudfront.net")
     );
   } catch {
     return false;
@@ -154,6 +156,7 @@ async function handleOpenRouterChatCompletion(payload, apiKey) {
       "Content-Type": "application/json",
       "HTTP-Referer": isAgentic ? "https://cline.bot" : "https://student.iclicker.com",
       "X-Title": isAgentic ? "Cline" : "aClicker",
+      "X-OpenRouter-Title": isAgentic ? "Cline" : "aClicker",
       "X-OpenRouter-Categories": "cli-agent",
     },
     body: JSON.stringify(payload),

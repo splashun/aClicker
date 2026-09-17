@@ -42,6 +42,7 @@ let autoStart = true;
 let spoofLocation = false;
 let localPrevPage = null;
 let isAnswering = false;
+let lastAnsweredImageSrc = null;
 
 // ─── Location Spoofing Helper ─────────────────────────────────────────────────
 
@@ -136,6 +137,11 @@ const ToastManager = (() => {
         .aclicker-status--complete { color: #16a34a; text-shadow: 0 0 6px rgba(22, 163, 74, 0.96), 0 0 18px rgba(22, 163, 74, 0.65); }
         .aclicker-status--warning  { color: #dc2626; text-shadow: 0 0 6px rgba(220, 38, 38, 0.98), 0 0 20px rgba(220, 38, 38, 0.68); }
         .aclicker-status--stopped  { color: #6b7280; text-shadow: none; }
+        .aclicker-selected-option  {
+          outline: 3px solid #16a34a !important;
+          outline-offset: 2px !important;
+          box-shadow: 0 0 12px rgba(22, 163, 74, 0.75) !important;
+        }
         @keyframes aclicker-pulse {
           0%   { text-shadow: 0 0 0px rgba(210, 217, 6, 1); }
           45%  { text-shadow: 0 0 10px rgba(210, 217, 6, 1), 0 0 15px rgba(210, 217, 6, 0.5); }
@@ -861,6 +867,12 @@ function selectAnswer(letter) {
   if (btn) {
     btn.click();
     console.log(`[aClicker] Clicked option ${letter}`);
+    try {
+      document.querySelectorAll(".aclicker-selected-option").forEach((el) => {
+        el.classList.remove("aclicker-selected-option");
+      });
+      btn.classList.add("aclicker-selected-option");
+    } catch {}
     return true;
   }
   console.warn(`[aClicker] Button for option ${letter} not found.`);
@@ -909,6 +921,7 @@ async function callAPI({
   const isDebug = (typeof debug === "boolean" ? debug : false) || debugMode;
   const cleanModel = normalizeModelId(modelId);
   const isFreeModel = typeof cleanModel === "string" && cleanModel.endsWith(":free");
+  const isAgenticModel = typeof cleanModel === "string" && cleanModel.includes("inkling");
   const effectiveMaxTokens = (isFreeModel || freeMode) && maxTokens === 2800 ? 8000 : maxTokens;
 
   const payload = {
@@ -936,11 +949,12 @@ async function callAPI({
   // For free models we rely on the system prompt's JSON instructions instead.
   // Including tools satisfies OpenRouter's "agentic harness" gate for models
   // like thinkingmachines/inkling:free that are restricted to agentic callers.
+  // Other free models (e.g. Ling-3.0-flash-vl) do not support tools and fail if included.
   if (!isFreeModel) {
     payload.provider = { require_parameters: true };
     payload.response_format = RESPONSE_FORMAT;
     payload.reasoning = { effort: "high" };
-  } else {
+  } else if (isAgenticModel) {
     payload.tools = [AGENTIC_TOOL];
   }
 
@@ -974,6 +988,7 @@ async function callAPI({
             "Content-Type": "application/json",
             "HTTP-Referer": isAgentic ? "https://cline.bot" : "https://student.iclicker.com",
             "X-Title": isAgentic ? "Cline" : "aClicker",
+            "X-OpenRouter-Title": isAgentic ? "Cline" : "aClicker",
             "X-OpenRouter-Categories": "cli-agent",
           },
           body: JSON.stringify(currentPayload),
@@ -1205,7 +1220,7 @@ async function runTiebreakerWithFallback({
 
 // ─── Check Answer ─────────────────────────────────────────────────────────────
 
-async function checkAnswer() {
+async function checkAnswer(force = false) {
   if (isAnswering) {
     console.log("[aClicker] Answer check already in progress, skipping duplicate.");
     return;
@@ -1218,6 +1233,13 @@ async function checkAnswer() {
     if (!imgElement) {
       setStatus("warning", "No question image found.");
       console.log("No image found.");
+      return;
+    }
+
+    if (!force && lastAnsweredImageSrc && lastAnsweredImageSrc === imgElement.src) {
+      if (debugMode) {
+        console.log("[aClicker Debug] Question image already answered, skipping duplicate check.");
+      }
       return;
     }
 
@@ -1260,6 +1282,7 @@ async function checkAnswer() {
       }
 
       if (selectAnswer(answer)) {
+        lastAnsweredImageSrc = imgElement.src;
         setStatus("complete", `Answered option ${answer}.`);
       } else {
         setStatus("warning", `AI selected option ${answer} (button not found).`);
@@ -1282,6 +1305,7 @@ async function checkAnswer() {
         currentSelectedAnswer = ans;
         const clicked = selectAnswer(currentSelectedAnswer);
         if (clicked) {
+          lastAnsweredImageSrc = imgElement.src;
           setStatus("working", `Answered option ${currentSelectedAnswer} • verifying…`);
         } else {
           setStatus("warning", `AI selected option ${currentSelectedAnswer} (button not found).`);
@@ -1331,6 +1355,7 @@ async function checkAnswer() {
     if (dualEval.action === "fallback") {
       currentSelectedAnswer = dualEval.currentSelected;
       selectAnswer(currentSelectedAnswer);
+      lastAnsweredImageSrc = imgElement.src;
       setStatus("complete", `Answered option ${currentSelectedAnswer}.`);
       return;
     }
@@ -1338,6 +1363,7 @@ async function checkAnswer() {
     if (dualEval.action === "consensus") {
       currentSelectedAnswer = dualEval.currentSelected;
       selectAnswer(currentSelectedAnswer);
+      lastAnsweredImageSrc = imgElement.src;
       setStatus("complete", `Confirmed option ${currentSelectedAnswer}.`);
       console.log(`[aClicker] Consensus reached on option ${currentSelectedAnswer}.`);
       return;
@@ -1372,18 +1398,32 @@ async function checkAnswer() {
       currentSelectedAnswer = tbDecision.finalAnswer;
       const clicked = selectAnswer(currentSelectedAnswer);
       if (clicked) {
+        lastAnsweredImageSrc = imgElement.src;
         setStatus("complete", `Tiebreaker updated answer to option ${currentSelectedAnswer}.`);
       } else {
         setStatus("warning", `Tiebreaker selected option ${currentSelectedAnswer} (button not found).`);
       }
     } else if (tiebreakerAnswer && tiebreakerAnswer === currentSelectedAnswer) {
+      lastAnsweredImageSrc = imgElement.src;
       setStatus("complete", `Tiebreaker confirmed option ${currentSelectedAnswer}.`);
     } else {
       // Both tiebreaker attempts failed or returned null; keep currently submitted answer
+      lastAnsweredImageSrc = imgElement.src;
       setStatus("complete", `Answered option ${currentSelectedAnswer} (tiebreaker unavailable).`);
     }
   } catch (error) {
-    setStatus("warning", "Unknown error - see console.");
+    const errStr = String(error?.message || error || "").toLowerCase();
+    if (errStr.includes("401") || errStr.includes("unauthorized") || errStr.includes("invalid api key")) {
+      setStatus("warning", "Invalid OpenRouter API key. Check Settings.");
+    } else if (errStr.includes("402") || errStr.includes("credits") || errStr.includes("payment")) {
+      setStatus("warning", "OpenRouter account out of credits.");
+    } else if (errStr.includes("429") || errStr.includes("rate limit")) {
+      setStatus("warning", "Rate limited by AI provider • Please wait.");
+    } else if (errStr.includes("404") || errStr.includes("no endpoints")) {
+      setStatus("warning", "No AI endpoint available for this model.");
+    } else {
+      setStatus("warning", "AI error — see console.");
+    }
     console.error("Error in checkAnswer:", error);
   } finally {
     isAnswering = false;
@@ -1501,6 +1541,7 @@ function startObserver() {
 
 function stopObserver(status) {
   observer?.disconnect();
+  lastAnsweredImageSrc = null;
 
   if (status === "default") {
     console.log("Default stop.");
@@ -1522,8 +1563,11 @@ function onRouteChange() {
     if (document.querySelector(".question-type-container")) {
       checkAnswer();
     }
-  } else if (isLoginPage(url) && autoLogin) {
-    checkAutoLogin();
+  } else {
+    lastAnsweredImageSrc = null;
+    if (isLoginPage(url) && autoLogin) {
+      checkAutoLogin();
+    }
   }
 }
 
@@ -1566,7 +1610,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           url.includes(ICLICKER_COURSE_URL) && activePage;
 
         if (onPollPage) {
-          checkAnswer();
+          checkAnswer(true);
         } else if (onClassPage && autoJoin) {
           chrome.storage.local.get(["status"], (result) => {
             if (result.status !== "standby") {

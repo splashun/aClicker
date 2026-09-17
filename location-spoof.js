@@ -156,6 +156,24 @@
     };
   }
 
+  // Intercept Permissions API to report 'granted' when spoofing is enabled
+  if (navigator.permissions && typeof navigator.permissions.query === "function") {
+    const originalPermissionsQuery = navigator.permissions.query.bind(navigator.permissions);
+    navigator.permissions.query = function (queryObj) {
+      if (isSpoofEnabled() && queryObj?.name === "geolocation") {
+        return Promise.resolve({
+          state: "granted",
+          name: "geolocation",
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => true,
+        });
+      }
+      return originalPermissionsQuery(queryObj);
+    };
+  }
+
   // ─── 2. Fetch / Set Class Instructor Geo ────────────────────────────────────
 
   /**

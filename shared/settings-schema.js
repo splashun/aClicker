@@ -154,6 +154,22 @@ const SETTINGS_SCHEMA = Object.freeze([
     disabled: (s) => s.freeMode === true,
     disabledReason: "Controlled by Free Mode",
   }),
+  Object.freeze({
+    id: "maxTokens",
+    storageKey: "maxTokens",
+    label: "Max Response Tokens",
+    description: "Maximum tokens generated per completion (default: 2800). Scaled up in Free Mode.",
+    type: "number",
+    group: "Advanced",
+    groupOrder: 3,
+    order: 3,
+    default: 2800,
+    min: 256,
+    max: 16000,
+    popup: false,
+    disabled: (s) => s.freeMode === true,
+    disabledReason: "Controlled by Free Mode (scaled to 8000)",
+  }),
 
   /* ── Developer ───────────────────────────────────────────────────────────── */
   Object.freeze({
