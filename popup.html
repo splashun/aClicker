@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="stylesheet" href="shared/tokens.css" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>aClicker</title>
+  </head>
+  <body>
+    <div class="popup" id="popup">
+      <!-- ── Header ──────────────────────────────────────────────────── -->
+      <header class="header">
+        <div class="header__icon" aria-hidden="true"></div>
+        <div class="header__copy">
+          <h1 class="header__title">aClicker</h1>
+          <p class="header__status">
+            <span id="statusDot" class="dot dot--inactive" aria-label="Inactive">•</span>
+            <span id="statusMsg">Extension is disabled</span>
+          </p>
+        </div>
+      </header>
+
+      <!-- ── Primary action ──────────────────────────────────────────── -->
+      <div class="action-area">
+        <button id="startBtn" class="btn btn--primary" type="button">Start Answering</button>
+        <button id="stopBtn"  class="btn btn--danger"  type="button" style="display:none">Stop Answering</button>
+      </div>
+
+      <!-- ── Quick settings ──────────────────────────────────────────── -->
+      <section class="quick-settings" id="quickSettings" aria-label="Quick settings">
+        <!-- rendered by popup.js from the schema -->
+      </section>
+
+      <!-- ── School section (conditional) ────────────────────────────── -->
+      <div id="schoolSection" class="school-section" style="display:none">
+        <div class="setting-row">
+          <div class="setting-row__text">
+            <span class="setting-row__label">Institution</span>
+          </div>
+          <span id="schoolDisplay" class="school-display">—</span>
+        </div>
+
+        <!-- Live dropdown — only visible on the login page -->
+        <div id="schoolLiveWrap" class="school-live" style="display:none">
+          <div class="select-wrap">
+            <select id="schoolSelect" class="select-input">
+              <option value="" disabled selected>Loading schools…</option>
+            </select>
+          </div>
+          <p id="schoolStatus" class="school-status"></p>
+        </div>
+      </div>
+
+      <!-- ── Footer link ─────────────────────────────────────────────── -->
+      <footer class="popup-footer">
+        <button id="openSettings" class="link-btn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          More Settings
+        </button>
+      </footer>
+    </div>
+
+    <!-- ── Error state (injected by JS when not on iClicker) ──────── -->
+
+    <script src="shared/storage.js"></script>
+    <script src="shared/settings-schema.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

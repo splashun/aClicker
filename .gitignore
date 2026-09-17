@@ -1,0 +1,36 @@
+# Project-specific
+test/
+ignore/
+TODO.md
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Chrome extension packaging
+*.pem
+*.crx
+*.zip
+
+# Node (if tests or tooling are added)
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# Logs
+*.log
+
+# Environment / secrets
+.env
+.env.*
