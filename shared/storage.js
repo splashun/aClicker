@@ -43,6 +43,7 @@ const SETTING_DEFAULTS = Object.freeze({
   autoJoin:      true,
   autoStart:     true,
   spoofLocation: false,
+  silentMode:    false,
 
   /* Login */
   autoLogin:   true,

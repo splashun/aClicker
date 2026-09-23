@@ -97,6 +97,18 @@ const SETTINGS_SCHEMA = Object.freeze([
     default: false,
     popup: true,
   }),
+  Object.freeze({
+    id: "silentMode",
+    storageKey: "silentMode",
+    label: "Silent Mode",
+    description: "Hide all on-screen indicators (toast & answer highlight) while the extension runs.",
+    type: "toggle",
+    group: "Automation",
+    groupOrder: 1,
+    order: 6,
+    default: false,
+    popup: true,
+  }),
 
   /* ── Login ───────────────────────────────────────────────────────────────── */
   Object.freeze({

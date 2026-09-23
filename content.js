@@ -40,6 +40,8 @@ let debugMode = false;
 let autoLogin = false;
 let autoStart = true;
 let spoofLocation = false;
+let silentMode = false;
+let lastSelectedLetter = null;
 let localPrevPage = null;
 let isAnswering = false;
 let lastAnsweredImageSrc = null;
@@ -169,6 +171,7 @@ const ToastManager = (() => {
 
   return {
     show(status, message) {
+      if (silentMode) return;
       injectToastDOM();
       if (!toastContainer || !toastDot || !toastMsg) return;
 
@@ -251,10 +254,10 @@ function initContent() {
   localPrevPage = null;
 
   const fetchSettings = typeof getSettings === "function"
-    ? getSettings(["autoJoin", "effort", "autoStart", "autoLogin", "schoolValue", "schoolName", "spoofLocation", "freeMode", "debugMode"])
+    ? getSettings(["autoJoin", "effort", "autoStart", "autoLogin", "schoolValue", "schoolName", "spoofLocation", "freeMode", "debugMode", "silentMode"])
     : new Promise((resolve) => {
         chrome.storage.local.get(
-          ["autoJoin", "effort", "autoStart", "autoLogin", "schoolValue", "schoolName", "spoofLocation", "freeMode", "debugMode"],
+          ["autoJoin", "effort", "autoStart", "autoLogin", "schoolValue", "schoolName", "spoofLocation", "freeMode", "debugMode", "silentMode"],
           (result) => {
             resolve({
               autoJoin: result.autoJoin !== false,
@@ -264,6 +267,7 @@ function initContent() {
               autoLogin: result.autoLogin !== false,
               autoStart: result.autoStart !== false,
               spoofLocation: result.spoofLocation === true,
+              silentMode: result.silentMode === true,
               schoolValue: result.schoolValue || "",
               schoolName: result.schoolName || "",
             });
@@ -279,6 +283,7 @@ function initContent() {
     autoLogin = result.autoLogin !== false;
     autoStart = result.autoStart !== false;
     spoofLocation = result.spoofLocation === true;
+    silentMode = result.silentMode === true;
 
     updateLocationSpoofing(spoofLocation);
     if (!observer) {
@@ -866,13 +871,16 @@ function selectAnswer(letter) {
   const btn = document.getElementById(`multiple-choice-${letter.toLowerCase()}`);
   if (btn) {
     btn.click();
+    lastSelectedLetter = letter;
     console.log(`[aClicker] Clicked option ${letter}`);
-    try {
-      document.querySelectorAll(".aclicker-selected-option").forEach((el) => {
-        el.classList.remove("aclicker-selected-option");
-      });
-      btn.classList.add("aclicker-selected-option");
-    } catch {}
+    if (!silentMode) {
+      try {
+        document.querySelectorAll(".aclicker-selected-option").forEach((el) => {
+          el.classList.remove("aclicker-selected-option");
+        });
+        btn.classList.add("aclicker-selected-option");
+      } catch {}
+    }
     return true;
   }
   console.warn(`[aClicker] Button for option ${letter} not found.`);
@@ -1691,6 +1699,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         break;
       }
 
+      case "silentMode": {
+        silentMode = message.value !== undefined ? !!message.value : !silentMode;
+        chrome.storage.local.set({ silentMode });
+        if (silentMode) {
+          const container = document.getElementById("aclicker-toast-container");
+          if (container) container.classList.remove("aclicker-toast-visible");
+          document.querySelectorAll(".aclicker-selected-option").forEach((el) =>
+            el.classList.remove("aclicker-selected-option")
+          );
+        } else {
+          // Restore toast with current status
+          if (lastRecordedStatus) {
+            ToastManager.show(lastRecordedStatus, lastRecordedMessage || "");
+          }
+          // Restore answer highlight
+          if (lastSelectedLetter) {
+            const btn = document.getElementById(`multiple-choice-${lastSelectedLetter.toLowerCase()}`);
+            if (btn) {
+              document.querySelectorAll(".aclicker-selected-option").forEach((el) =>
+                el.classList.remove("aclicker-selected-option")
+              );
+              btn.classList.add("aclicker-selected-option");
+            }
+          }
+        }
+        break;
+      }
+
       default: {
         console.log("Unknown message:", message);
         break;
@@ -1729,6 +1765,29 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   if ("autoStart" in changes) {
     autoStart = changes.autoStart.newValue !== false;
+  }
+  if ("silentMode" in changes) {
+    silentMode = changes.silentMode.newValue === true;
+    if (silentMode) {
+      const container = document.getElementById("aclicker-toast-container");
+      if (container) container.classList.remove("aclicker-toast-visible");
+      document.querySelectorAll(".aclicker-selected-option").forEach((el) =>
+        el.classList.remove("aclicker-selected-option")
+      );
+    } else {
+      if (lastRecordedStatus) {
+        ToastManager.show(lastRecordedStatus, lastRecordedMessage || "");
+      }
+      if (lastSelectedLetter) {
+        const btn = document.getElementById(`multiple-choice-${lastSelectedLetter.toLowerCase()}`);
+        if (btn) {
+          document.querySelectorAll(".aclicker-selected-option").forEach((el) =>
+            el.classList.remove("aclicker-selected-option")
+          );
+          btn.classList.add("aclicker-selected-option");
+        }
+      }
+    }
   }
   if ("prevPage" in changes) {
     localPrevPage = changes.prevPage.newValue;
